@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Position;
 use App\Models\Employee;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class EmployeeController extends Controller
 {
@@ -39,35 +41,66 @@ class EmployeeController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $messages = [
-            'required' => ':Attribute harus diisi.',
-            'email' => 'Isi :attribute dengan format yang benar',
-            'numeric' => 'Isi :attribute dengan angka'
-        ];
+{
+    $messages = [
+        'required' => ':Attribute harus diisi.',
+        'email' => 'Isi :attribute dengan format yang benar',
+        'numeric' => 'Isi :attribute dengan angka'
+    ];
 
-        $validator = Validator::make($request->all(), [
-            'firstName' => 'required',
-            'lastName' => 'required',
-            'email' => 'required|email',
-            'age' => 'required|numeric',
-        ], $messages);
+    $validator = Validator::make($request->all(), [
+        'firstName' => 'required',
+        'lastName' => 'required',
+        'email' => 'required|email',
+        'age' => 'required|numeric',
+        'cv' => 'nullable|mimes:pdf|max:2048', // Validasi untuk tipe dan ukuran file CV
+    ], $messages);
 
-        if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput();
+    if ($validator->fails()) {
+        return redirect()->back()->withErrors($validator)->withInput();
+    }
+
+    // Get File
+    $file = $request->file('cv');
+
+    if ($file != null) {
+        $originalFilename = $file->getClientOriginalName();
+        $encryptedFilename = $file->hashName();
+
+        // Store File
+        $file->store('public/files');
+    }
+
+    // ELOQUENT
+    $employee = New Employee;
+    $employee->firstname = $request->firstName;
+    $employee->lastname = $request->lastName;
+    $employee->email = $request->email;
+    $employee->age = $request->age;
+    $employee->position_id = $request->position;
+
+    if ($file != null) {
+        $employee->original_filename = $originalFilename;
+        $employee->encrypted_filename = $encryptedFilename;
+    }
+
+     // Handle upload file CV baru
+     if ($request->hasFile('cv')) {
+        // Hapus file CV lama jika ada
+        if ($employee->cv) {
+            Storage::disk('public')->delete($employee->cv);
         }
 
-        // ELOQUENT
-        $employee = New Employee;
-        $employee->firstname = $request->firstName;
-        $employee->lastname = $request->lastName;
-        $employee->email = $request->email;
-        $employee->age = $request->age;
-        $employee->position_id = $request->position;
-        $employee->save();
-
-        return redirect()->route('employees.index');
+        // Unggah file CV baru
+        $cvPath = $request->file('cv')->store('cv', 'public');
+        $employee->cv = $cvPath;
+        $employee->original_filename = $request->file('cv')->getClientOriginalName();
     }
+
+    $employee->save();
+
+    return redirect()->route('employees.index');
+}
     /**
      * Display the specified resource.
      */
@@ -95,6 +128,17 @@ class EmployeeController extends Controller
     return view('employee.edit', compact('pageTitle', 'positions', 'employee'));
 }
 
+public function downloadFile($employeeId)
+{
+    $employee = Employee::find($employeeId);
+    $encryptedFilename = 'public/files/'.$employee->encrypted_filename;
+    $downloadFilename = Str::lower($employee->firstname.'_'.$employee->lastname.'_cv.pdf');
+
+    if(Storage::exists($encryptedFilename)) {
+        return Storage::download($encryptedFilename, $downloadFilename);
+    }
+}
+
 public function update(Request $request, string $id)
 {
     $messages = [
@@ -108,6 +152,7 @@ public function update(Request $request, string $id)
         'lastName' => 'required',
         'email' => 'required|email',
         'age' => 'required|numeric',
+        'cv' => 'nullable|mimes:pdf|max:2048', // Validation for CV file
     ], $messages);
 
     if ($validator->fails()) {
@@ -122,6 +167,20 @@ public function update(Request $request, string $id)
     $employee->age = $request->age;
     $employee->position_id = $request->position;
     $employee->save();
+
+// Handle CV file upload
+if ($request->hasFile('cv')) {
+    // Delete the old CV file if it exists
+    if ($employee->cv) {
+        Storage::disk('public')->delete($employee->cv);
+    }
+
+    // Upload the new CV file
+    $cvPath = $request->file('cv')->store('cv', 'public');
+    $employee->cv = $cvPath;
+    $employee->original_filename = $request->file('cv')->getClientOriginalName();
+    $employee->save();
+}
 
     return redirect()->route('employees.index');
 }

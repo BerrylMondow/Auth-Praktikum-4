@@ -36,7 +36,7 @@
                     @endif-->
                 @else
                 <div class="dropdown">
-                    <button class="btn btn-warning outline-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button class="btn btn-warning dropdown-toggle" style="border: 2px solid black;" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-person-circle"></i> {{ Auth::user()->name }}
                     </button>
                     <ul class="dropdown-menu">

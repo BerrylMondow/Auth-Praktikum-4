@@ -2,9 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Position;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
 class PositionSeeder extends Seeder
 {
@@ -30,5 +31,7 @@ class PositionSeeder extends Seeder
                 'description' => 'System Analist'
             ],
         ]);
+
+        Position::factory()->count(5)->create();
     }
 }

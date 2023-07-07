@@ -1,5 +1,5 @@
 @extends('layouts.app')
-
+@push('scripts')
 @section('content')
     <div class="container mt-4">
         <div class="row mb-0">
@@ -14,7 +14,7 @@
         </div>
         <hr>
         <div class="table-responsive border p-3 rounded-3">
-            <table class="table table-bordered table-hover table-striped mb-0 bg-white">
+            <table class="table table-bordered table-hover table-striped mb-0 bg-white" id="employeeTable">
                 <thead>
                     <tr>
                         <th>First Name</th>
@@ -40,4 +40,12 @@
             </table>
         </div>
     </div>
+
+    <script type="module">
+        $(document).ready(function() {
+            $('#employeeTable').DataTable();
+        });
+    </script>
+@endpush
 @endsection
+
